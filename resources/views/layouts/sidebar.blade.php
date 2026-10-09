@@ -7,13 +7,11 @@
     $allowedMenus = collect();
 
     if ($user && $user->role) {
-
         $allowedMenus = $user->role
             ->menus()
             ->where('menus.is_active', true)
             ->orderBy('sort_order')
             ->get();
-
     }
 
     $allMenus = Menu::query()
@@ -31,7 +29,6 @@
 
 @endphp
 
-
 <div class="sidebar" id="sidebar">
 
     {{-- =====================================================
@@ -48,8 +45,18 @@
             BPJS Ketenagakerjaan
         </div>
 
-    </div>
+        {{-- TOMBOL TUTUP MOBILE --}}
+        <button
+            type="button"
+            class="sidebar-close-btn"
+            id="sidebarCloseBtn"
+            aria-label="Tutup sidebar"
+            title="Tutup menu"
+        >
+            &times;
+        </button>
 
+    </div>
 
     {{-- =====================================================
         USER
@@ -70,7 +77,6 @@
         </div>
 
     @endauth
-
 
     {{-- =====================================================
         NAVIGATION
@@ -106,12 +112,7 @@
 
                         $routePattern = $child->route;
 
-                        if (
-                            str_ends_with(
-                                $routePattern,
-                                '.index'
-                            )
-                        ) {
+                        if (str_ends_with($routePattern, '.index')) {
 
                             $routePattern = str_replace(
                                 '.index',
@@ -121,15 +122,12 @@
 
                         }
 
-                        return request()->routeIs(
-                            $routePattern
-                        );
+                        return request()->routeIs($routePattern);
 
                     }
                 );
 
             @endphp
-
 
             {{-- =================================================
                 MENU LANGSUNG
@@ -159,7 +157,6 @@
 
             @endif
 
-
             {{-- =================================================
                 MENU DROPDOWN
             ================================================== --}}
@@ -167,11 +164,8 @@
             @if ($allowedChildren->isNotEmpty())
 
                 @php
-
                     $collapseId = 'menu-' . $menu->id;
-
                 @endphp
-
 
                 <div class="sidebar-dropdown">
 
@@ -195,7 +189,6 @@
 
                     </button>
 
-
                     <div
                         id="{{ $collapseId }}"
                         class="collapse
@@ -212,12 +205,7 @@
 
                                         $routePattern = $child->route;
 
-                                        if (
-                                            str_ends_with(
-                                                $routePattern,
-                                                '.index'
-                                            )
-                                        ) {
+                                        if (str_ends_with($routePattern, '.index')) {
 
                                             $routePattern = str_replace(
                                                 '.index',
@@ -228,7 +216,6 @@
                                         }
 
                                     @endphp
-
 
                                     <a
                                         href="{{ Route::has($child->route)
@@ -259,7 +246,6 @@
         @endforeach
 
     </div>
-
 
     {{-- =====================================================
         LOGOUT
