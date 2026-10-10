@@ -92,33 +92,6 @@
             @endif
         </div>
 
-        <!-- <form method="GET" action="{{ route('role-user.index') }}" class="user-search-form">
-            <input type="hidden" name="per_page" value="{{ $perPage }}">
-
-            <div class="input-group">
-                <span class="input-group-text bg-white">
-                    <i class="bi bi-search"></i>
-                </span>
-                <input
-                    type="search"
-                    name="search"
-                    class="form-control"
-                    value="{{ $search }}"
-                    placeholder="Cari nama atau email..."
-                    aria-label="Cari pengguna"
-                >
-                @if($search !== '')
-                    <a
-                        href="{{ route('role-user.index', ['per_page' => $perPage]) }}"
-                        class="btn btn-outline-secondary"
-                        title="Reset pencarian"
-                    >
-                        <i class="bi bi-x-lg"></i>
-                    </a>
-                @endif
-                <button class="btn btn-primary" type="submit">Cari</button>
-            </div>
-        </form> -->
     </div>
 
     <div class="table-responsive">

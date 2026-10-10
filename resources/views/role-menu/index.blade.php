@@ -1,16 +1,18 @@
+
 @extends('layouts.app')
 
 @section('title', 'Role Menu')
 @section('page-title', 'Role Menu')
 
 @section('content')
+
 @php
     $selectedMenuIds = collect($selectedMenuIds ?? [])
         ->map(fn ($id) => (int) $id)
         ->all();
 @endphp
 
-{{-- ALERT --}}
+{{-- ALERT DARI SESSION --}}
 @if(session('success'))
     <div class="alert alert-success alert-dismissible fade show">
         <i class="bi bi-check-circle me-2"></i>
@@ -39,12 +41,21 @@
     </div>
 @endif
 
+{{-- ALERT AJAX --}}
+<div
+    id="ajaxAlert"
+    class="alert d-none"
+    role="alert"
+    aria-live="polite"
+></div>
+
 {{-- HEADER --}}
 <div class="content-card mb-4">
     <div class="d-flex align-items-center gap-3">
         <div class="role-page-icon">
             <i class="bi bi-shield-lock"></i>
         </div>
+
         <div>
             <h5 class="mb-1 fw-semibold">Pengaturan Role Menu</h5>
             <p class="text-muted mb-0">
@@ -63,35 +74,39 @@
         </p>
     </div>
 
-    <form method="GET" action="{{ route('role-menu.index') }}">
-        <div class="row g-3 align-items-end">
-            <div class="col-md-6 col-lg-5">
-                <label for="role_id" class="form-label">Role Pengguna</label>
-                <select
-                    name="role_id"
-                    id="role_id"
-                    class="form-select"
-                    onchange="this.form.submit()"
-                    required
-                >
-                    @forelse($roles as $role)
-                        <option
-                            value="{{ $role->id }}"
-                            @selected((int) $selectedRoleId === (int) $role->id)
-                        >
-                            {{ $role->name }}
-                        </option>
-                    @empty
-                        <option value="">Belum ada role</option>
-                    @endforelse
-                </select>
-            </div>
+    <div class="row g-3 align-items-end">
+        <div class="col-md-6 col-lg-5">
+            <label for="role_id" class="form-label">
+                Role Pengguna
+            </label>
+
+            <select
+                name="role_id"
+                id="role_id"
+                class="form-select"
+                data-index-url="{{ route('role-menu.index') }}"
+                required
+                @disabled($roles->isEmpty())
+            >
+                @forelse($roles as $role)
+                    <option
+                        value="{{ $role->id }}"
+                        data-update-url="{{ route('role-menu.update', $role->id) }}"
+                        @selected((int) $selectedRoleId === (int) $role->id)
+                    >
+                        {{ $role->name }}
+                    </option>
+                @empty
+                    <option value="">Belum ada role</option>
+                @endforelse
+            </select>
         </div>
-    </form>
+    </div>
 </div>
 
 {{-- DAFTAR HAK AKSES --}}
 @if($selectedRoleId)
+
     <form
         method="POST"
         action="{{ route('role-menu.update', $selectedRoleId) }}"
@@ -101,6 +116,8 @@
         @method('PUT')
 
         <div class="content-card">
+
+            {{-- HEADER DAFTAR MENU --}}
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
                 <div>
                     <h5 class="fw-semibold mb-1">Daftar Menu</h5>
@@ -130,26 +147,34 @@
                 </div>
             </div>
 
+            {{-- JUMLAH MENU TERPILIH --}}
             <div class="role-menu-summary mb-3">
                 <i class="bi bi-info-circle me-2"></i>
                 <span id="selectedMenuCount">0</span> menu dipilih
             </div>
 
+            {{-- DAFTAR MENU --}}
             <div class="role-menu-list">
+
                 @forelse($menus as $menu)
+
                     @php
                         $children = $menu->children ?? collect();
                     @endphp
 
                     @if($children->isNotEmpty())
+
                         <section class="menu-group">
+
                             <div class="menu-group-title">
                                 <i class="bi bi-folder2-open me-2"></i>
                                 {{ $menu->name }}
                             </div>
 
                             <div class="menu-group-items">
+
                                 @foreach($children as $child)
+
                                     <label
                                         class="menu-access-item"
                                         for="menu_{{ $child->id }}"
@@ -169,10 +194,14 @@
 
                                         <i class="bi bi-check-circle-fill menu-check-icon"></i>
                                     </label>
+
                                 @endforeach
+
                             </div>
                         </section>
+
                     @else
+
                         <label
                             class="menu-access-item menu-direct-item"
                             for="menu_{{ $menu->id }}"
@@ -193,41 +222,74 @@
 
                             <i class="bi bi-check-circle-fill menu-check-icon"></i>
                         </label>
+
                     @endif
+
                 @empty
+
                     <div class="text-center py-5">
                         <i class="bi bi-menu-button-wide empty-menu-icon"></i>
+
                         <h6 class="mt-3 mb-1">Belum ada data menu</h6>
+
                         <p class="text-muted small mb-0">
                             Tambahkan data menu terlebih dahulu.
                         </p>
                     </div>
+
                 @endforelse
+
             </div>
 
+            {{-- TOMBOL SIMPAN --}}
             @if($menus->isNotEmpty())
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mt-4 pt-4 border-top">
+
                     <small class="text-muted">
                         Periksa pilihan sebelum menyimpan perubahan.
                     </small>
 
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-save me-2"></i>
-                        Simpan Hak Akses
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                        id="saveRoleMenuButton"
+                    >
+                        <span
+                            id="saveRoleMenuSpinner"
+                            class="spinner-border spinner-border-sm me-2 d-none"
+                            aria-hidden="true"
+                        ></span>
+
+                        <i
+                            class="bi bi-save me-2"
+                            id="saveRoleMenuIcon"
+                        ></i>
+
+                        <span id="saveRoleMenuText">
+                            Simpan Hak Akses
+                        </span>
                     </button>
+
                 </div>
             @endif
+
         </div>
     </form>
+
 @else
+
     <div class="content-card text-center py-5">
         <i class="bi bi-shield-lock empty-menu-icon"></i>
+
         <h6 class="mt-3">Role belum tersedia</h6>
+
         <p class="text-muted mb-0">
             Tambahkan role terlebih dahulu sebelum mengatur hak akses.
         </p>
     </div>
+
 @endif
+
 @endsection
 
 @push('styles')
@@ -337,6 +399,10 @@
         color: #adb5bd;
     }
 
+    #ajaxAlert {
+        overflow-wrap: anywhere;
+    }
+
     @media (max-width: 767.98px) {
         .role-menu-summary {
             font-size: 12px;
@@ -353,32 +419,284 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const checkboxes = () => document.querySelectorAll('.menu-checkbox');
+    const roleSelect = document.getElementById('role_id');
+    const form = document.getElementById('roleMenuForm');
+    const alertBox = document.getElementById('ajaxAlert');
     const countElement = document.getElementById('selectedMenuCount');
 
-    function updateSelectedCount() {
-        if (!countElement) return;
+    const checkAllButton = document.getElementById('checkAll');
+    const uncheckAllButton = document.getElementById('uncheckAll');
 
-        countElement.textContent = Array.from(checkboxes())
-            .filter(checkbox => checkbox.checked).length;
+    const saveButton = document.getElementById('saveRoleMenuButton');
+    const saveText = document.getElementById('saveRoleMenuText');
+    const saveIcon = document.getElementById('saveRoleMenuIcon');
+    const saveSpinner = document.getElementById('saveRoleMenuSpinner');
+
+    if (!roleSelect || !alertBox) {
+        return;
     }
 
-    document.getElementById('checkAll')?.addEventListener('click', function () {
-        checkboxes().forEach(checkbox => checkbox.checked = true);
+    let isLoadingRole = false;
+    let isSaving = false;
+    let requestNumber = 0;
+
+    const getCheckboxes = () => {
+        return form
+            ? [...form.querySelectorAll('.menu-checkbox')]
+            : [];
+    };
+
+    function showAlert(message, type = 'success') {
+        alertBox.textContent = message;
+        alertBox.className = `alert alert-${type}`;
+    }
+
+    function hideAlert() {
+        alertBox.textContent = '';
+        alertBox.className = 'alert d-none';
+    }
+
+    function updateSelectedCount() {
+        if (!countElement) {
+            return;
+        }
+
+        const selectedCount = getCheckboxes()
+            .filter(checkbox => checkbox.checked)
+            .length;
+
+        countElement.textContent = selectedCount;
+    }
+
+    function updateFormAction() {
+        if (!form) {
+            return;
+        }
+
+        const selectedOption = roleSelect.selectedOptions[0];
+        const updateUrl = selectedOption?.dataset.updateUrl;
+
+        form.action = updateUrl || '#';
+    }
+
+    function setControlsDisabled(disabled) {
+        if (checkAllButton) {
+            checkAllButton.disabled = disabled;
+        }
+
+        if (uncheckAllButton) {
+            uncheckAllButton.disabled = disabled;
+        }
+
+        getCheckboxes().forEach(checkbox => {
+            checkbox.disabled = disabled;
+        });
+
+        if (saveButton) {
+            saveButton.disabled = disabled;
+        }
+    }
+
+    async function requestJson(url, options = {}) {
+        const response = await fetch(url, {
+            ...options,
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                ...(options.headers || {})
+            }
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            const firstValidationError = data.errors
+                ? Object.values(data.errors).flat()[0]
+                : null;
+
+            throw new Error(
+                firstValidationError ||
+                data.message ||
+                `Permintaan gagal (${response.status}).`
+            );
+        }
+
+        return data;
+    }
+
+    async function loadRoleMenus() {
+        if (!form) {
+            return;
+        }
+
+        const roleId = roleSelect.value;
+        const currentRequest = ++requestNumber;
+
+        hideAlert();
+        updateFormAction();
+
+        if (!roleId) {
+            getCheckboxes().forEach(checkbox => {
+                checkbox.checked = false;
+            });
+
+            updateSelectedCount();
+            return;
+        }
+
+        isLoadingRole = true;
+        roleSelect.disabled = true;
+        setControlsDisabled(true);
+
+        try {
+            const indexUrl = new URL(
+                roleSelect.dataset.indexUrl,
+                window.location.origin
+            );
+
+            indexUrl.searchParams.set('role_id', roleId);
+
+            const data = await requestJson(indexUrl.toString());
+
+            // Abaikan respons lama jika pengguna sudah memilih role lain.
+            if (currentRequest !== requestNumber) {
+                return;
+            }
+
+            const selectedIds = new Set(
+                (data.selected_menu_ids || []).map(Number)
+            );
+
+            getCheckboxes().forEach(checkbox => {
+                checkbox.checked = selectedIds.has(
+                    Number(checkbox.value)
+                );
+            });
+
+            updateSelectedCount();
+        } catch (error) {
+            if (currentRequest === requestNumber) {
+                showAlert(
+                    error.message || 'Gagal memuat hak akses menu.',
+                    'danger'
+                );
+            }
+        } finally {
+            if (currentRequest === requestNumber) {
+                isLoadingRole = false;
+                roleSelect.disabled = false;
+                setControlsDisabled(false);
+            }
+        }
+    }
+
+    // Ganti role tanpa memuat ulang halaman.
+    roleSelect.addEventListener('change', loadRoleMenus);
+
+    // Pilih semua menu.
+    checkAllButton?.addEventListener('click', function () {
+        if (isLoadingRole || isSaving) {
+            return;
+        }
+
+        getCheckboxes().forEach(checkbox => {
+            checkbox.checked = true;
+        });
+
         updateSelectedCount();
     });
 
-    document.getElementById('uncheckAll')?.addEventListener('click', function () {
-        checkboxes().forEach(checkbox => checkbox.checked = false);
+    // Hapus semua pilihan.
+    uncheckAllButton?.addEventListener('click', function () {
+        if (isLoadingRole || isSaving) {
+            return;
+        }
+
+        getCheckboxes().forEach(checkbox => {
+            checkbox.checked = false;
+        });
+
         updateSelectedCount();
     });
 
-    document.getElementById('roleMenuForm')?.addEventListener('change', function (event) {
+    // Perbarui jumlah saat checkbox berubah.
+    form?.addEventListener('change', function (event) {
         if (event.target.matches('.menu-checkbox')) {
             updateSelectedCount();
         }
     });
 
+    // Simpan hak akses menggunakan AJAX.
+    form?.addEventListener('submit', async function (event) {
+        event.preventDefault();
+
+        if (isLoadingRole || isSaving) {
+            return;
+        }
+
+        if (!roleSelect.value || form.action.endsWith('#')) {
+            showAlert('Pilih role terlebih dahulu.', 'warning');
+            return;
+        }
+
+        const csrfToken = form.querySelector(
+            'input[name="_token"]'
+        )?.value;
+
+        const menuIds = getCheckboxes()
+            .filter(checkbox => checkbox.checked)
+            .map(checkbox => Number(checkbox.value));
+
+        isSaving = true;
+        setControlsDisabled(true);
+
+        if (saveText) {
+            saveText.textContent = 'Menyimpan...';
+        }
+
+        saveIcon?.classList.add('d-none');
+        saveSpinner?.classList.remove('d-none');
+
+        hideAlert();
+
+        try {
+            const data = await requestJson(form.action, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken || ''
+                },
+                body: JSON.stringify({
+                    _token: csrfToken,
+                    menu_ids: menuIds
+                })
+            });
+
+            showAlert(
+                data.message || 'Hak akses menu berhasil diperbarui.',
+                'success'
+            );
+
+            updateSelectedCount();
+        } catch (error) {
+            showAlert(
+                error.message || 'Gagal menyimpan hak akses menu.',
+                'danger'
+            );
+        } finally {
+            isSaving = false;
+            setControlsDisabled(false);
+
+            if (saveText) {
+                saveText.textContent = 'Simpan Hak Akses';
+            }
+
+            saveIcon?.classList.remove('d-none');
+            saveSpinner?.classList.add('d-none');
+        }
+    });
+
+    updateFormAction();
     updateSelectedCount();
 });
 </script>
